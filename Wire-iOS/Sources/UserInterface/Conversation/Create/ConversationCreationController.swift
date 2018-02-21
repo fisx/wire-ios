@@ -31,14 +31,26 @@ final public class ConversationCreationValues {
 }
 
 open class ConversationCreationTitleFactory {
-    static func createTitleLabel(for title: String) -> UILabel {
+    static func createTitleLabel(for title: String, variant: ColorSchemeVariant) -> UILabel {
         let titleLabel = UILabel()
         titleLabel.font = FontSpec(.normal, .medium).font!.allCaps()
-        titleLabel.textColor = UIColor.wr_color(fromColorScheme: ColorSchemeColorIconNormal, variant: .light)
+        titleLabel.textColor = UIColor.wr_color(fromColorScheme: ColorSchemeColorIconNormal, variant: variant)
         titleLabel.text = title
         titleLabel.sizeToFit()
         return titleLabel
     }
+}
+
+@objc protocol ConversationCreationControllerDelegate: class {
+    func conversationCreationController(
+        _ controller: ConversationCreationController,
+        didSelectName name: String,
+        participants: Set<ZMUser>
+    )
+
+    func conversationCreationControllerDidCancel(
+        _ controller: ConversationCreationController
+    )
 }
 
 final class ConversationCreationController: UIViewController {
@@ -48,10 +60,11 @@ final class ConversationCreationController: UIViewController {
     static let mainViewHeight: CGFloat = 56
 
     fileprivate var errorLabel: UILabel!
-
     fileprivate var errorViewContainer: UIView!
     private var mainViewContainer: UIView!
 
+    fileprivate var navigationBarBackgroundView: UIView!
+    
     private let backButtonDescription = BackButtonDescription()
     fileprivate var nextButton: UIButton!
 
@@ -60,25 +73,32 @@ final class ConversationCreationController: UIViewController {
     fileprivate var secondaryErrorView: UIView?
     
     fileprivate var values: ConversationCreationValues?
-
-    typealias CreationCloseClosure = (ConversationCreationValues?) -> Void
-    fileprivate var onClose: CreationCloseClosure?
-
-    init(onClose: CreationCloseClosure? = nil) {
-        self.onClose = onClose
+    fileprivate let source: LinearGroupCreationFlowSource
+    
+    weak var delegate: ConversationCreationControllerDelegate?
+    private var preSelectedParticipants: Set<ZMUser>?
+    
+    @objc public convenience init(preSelectedParticipants: Set<ZMUser>) {
+        self.init(source: .conversationDetails)
+        self.preSelectedParticipants = preSelectedParticipants
+    }
+    
+    public init(source: LinearGroupCreationFlowSource = .startUI) {
+        self.source = source
         super.init(nibName: nil, bundle: nil)
     }
-
+    
     required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-
+    
     override var prefersStatusBarHidden: Bool {
         return false
     }
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        Analytics.shared().tagLinearGroupOpened(with: self.source)
 
         view.backgroundColor = UIColor.Team.background
         title = "create group".uppercased()
@@ -94,7 +114,7 @@ final class ConversationCreationController: UIViewController {
     }
 
     override var preferredStatusBarStyle: UIStatusBarStyle {
-        return ColorScheme.default().variant == .dark ? .lightContent : .default
+        return .default
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -111,6 +131,10 @@ final class ConversationCreationController: UIViewController {
         mainViewContainer = UIView()
         mainViewContainer.translatesAutoresizingMaskIntoConstraints = false
 
+        navigationBarBackgroundView = UIView()
+        navigationBarBackgroundView.backgroundColor = .white
+        mainViewContainer.addSubview(navigationBarBackgroundView)
+        
         textField = SimpleTextField()
         textField.isAccessibilityElement = true
         textField.accessibilityIdentifier = "textfield.newgroup.name"
@@ -135,25 +159,33 @@ final class ConversationCreationController: UIViewController {
     }
 
     private func setupNavigationBar() {
-        
         // left button
-        backButtonDescription.buttonTapped = { [unowned self] in self.onClose?(nil) }
-        backButtonDescription.accessibilityIdentifier = "button.newgroup.back"
+        backButtonDescription.buttonTapped = { [weak self] in
+            self?.onCancel()
+        }
 
-        navigationItem.leftBarButtonItem = UIBarButtonItem(customView: backButtonDescription.create())
+        backButtonDescription.accessibilityIdentifier = "button.newgroup.back"
+        if navigationController?.viewControllers.count ?? 0 > 1 {
+            navigationItem.leftBarButtonItem = UIBarButtonItem(customView: backButtonDescription.create())
+        }
+        else {
+            navigationItem.leftBarButtonItem = UIBarButtonItem(icon: .X, target: self, action: #selector(onCancel))
+            navigationItem.leftBarButtonItem?.tintColor = .black
+            navigationItem.leftBarButtonItem?.accessibilityIdentifier = "button.newgroup.close"
+        }
 
         // title view
-        navigationItem.titleView = ConversationCreationTitleFactory.createTitleLabel(for: self.title ?? "")
+        navigationItem.titleView = ConversationCreationTitleFactory.createTitleLabel(for: self.title ?? "", variant: .light)
         
         // right button
         nextButton = ButtonWithLargerHitArea(type: .custom)
         nextButton.frame = CGRect(x: 0, y: 0, width: 40, height: 20)
         nextButton.accessibilityIdentifier = "button.newgroup.next"
         nextButton.setTitle("general.next".localized.uppercased(), for: .normal)
-        nextButton.setTitleColor(UIColor.wr_color(fromColorScheme: ColorSchemeColorIconNormal, variant: .light), for: .normal)
+        nextButton.setTitleColor(.accent(), for: .normal)
         nextButton.setTitleColor(UIColor.wr_color(fromColorScheme: ColorSchemeColorTextDimmed, variant: .light), for: .highlighted)
         nextButton.setTitleColor(UIColor.wr_color(fromColorScheme: ColorSchemeColorIconShadow, variant: .light), for: .disabled)
-        nextButton.titleLabel?.font = FontSpec(.medium, .medium).font!
+        nextButton.titleLabel?.font = FontSpec(.medium, .semibold).font!
         nextButton.sizeToFit()
         
         nextButton.addCallback(for: .touchUpInside) { [weak self] _ in
@@ -161,15 +193,30 @@ final class ConversationCreationController: UIViewController {
         }
         
         navigationItem.rightBarButtonItem = UIBarButtonItem(customView: nextButton)
+        nextButton.isEnabled = false
     }
     
     private func createConstraints() {
+        if UIApplication.shared.keyWindow!.traitCollection.horizontalSizeClass == .compact {
+            self.safeBottomAnchor.constraint(equalTo: errorViewContainer.bottomAnchor).isActive = true
+        }
+        else {
+            mainViewContainer.centerYAnchor.constraint(equalTo: view.centerYAnchor).isActive = true
+        }
+        
+        constrain(view, navigationBarBackgroundView, self.car_topLayoutGuide) { view, navigationBarBackgroundView, topLayoutGuide in
+            navigationBarBackgroundView.leading == view.leading
+            navigationBarBackgroundView.trailing == view.trailing
+            navigationBarBackgroundView.top == view.top
+            navigationBarBackgroundView.bottom == topLayoutGuide.bottom
+        }
         
         constrain(view, errorViewContainer, mainViewContainer) { view, errorViewContainer, mainViewContainer in
-            errorViewContainer.bottom == view.bottom - 25
+            
             errorViewContainer.leading == view.leading
             errorViewContainer.trailing == view.trailing
-            errorViewContainer.height == 30
+            errorViewContainer.height == 82
+
             mainViewContainer.bottom == errorViewContainer.top
             mainViewContainer.centerX == view.centerX
             mainViewContainer.width == view.width
@@ -184,13 +231,14 @@ final class ConversationCreationController: UIViewController {
         }
 
         constrain(errorViewContainer, errorLabel) { errorViewContainer, errorLabel in
-            errorLabel.centerY == errorViewContainer.centerY
             errorLabel.leading == errorViewContainer.leadingMargin
             errorLabel.trailing == errorViewContainer.trailingMargin
-            errorLabel.topMargin == errorViewContainer.topMargin
-            errorLabel.bottomMargin == errorViewContainer.bottomMargin
-            errorLabel.height >= 19
+            errorLabel.top == errorViewContainer.top + 16
         }
+    }
+
+    dynamic func onCancel() {
+        delegate?.conversationCreationControllerDidCancel(self)
     }
 
     func proceedWith(value: SimpleTextField.Value) {
@@ -198,10 +246,14 @@ final class ConversationCreationController: UIViewController {
         case let .error(error):
             displayError(error)
         case let .valid(name):
+            let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
             textField.resignFirstResponder()
-            let newValues = ConversationCreationValues(name: name, participants: values?.participants ?? [])
+            let newValues = ConversationCreationValues(name: trimmed, participants: preSelectedParticipants ?? values?.participants ?? [])
             values = newValues
-            let participantsController = AddParticipantsViewController(context: .create(newValues))
+            
+            Analytics.shared().tagLinearGroupSelectParticipantsOpened(with: self.source)
+            
+            let participantsController = AddParticipantsViewController(context: .create(newValues), variant: .light)
             participantsController.conversationCreationDelegate = self
             navigationController?.pushViewController(participantsController, animated: true)
         }
@@ -222,7 +274,10 @@ extension ConversationCreationController: AddParticipantsConversationCreationDel
         case .updatedUsers(let users):
             values = values.map { .init(name: $0.name, participants: users) }
         case .create:
-            onClose?(values)
+            values.apply {
+                Analytics.shared().tagLinearGroupCreated(with: self.source, isEmpty: $0.participants.isEmpty)
+                delegate?.conversationCreationController(self, didSelectName: $0.name, participants: $0.participants)
+            }
         }
     }
 }
@@ -230,9 +285,13 @@ extension ConversationCreationController: AddParticipantsConversationCreationDel
 // MARK: - SimpleTextFieldDelegate
 
 extension ConversationCreationController: SimpleTextFieldDelegate {
-    func textField(_ textField: SimpleTextField, valueChanged value: SimpleTextField.Value?) {
+    func textField(_ textField: SimpleTextField, valueChanged value: SimpleTextField.Value) {
         clearError()
-        nextButton.isEnabled = (value != nil)
+        switch value {
+        case .error(_): nextButton.isEnabled = false
+        case .valid(_): nextButton.isEnabled = true
+        }
+        
     }
 
     func textFieldReturnPressed(_ textField: SimpleTextField) {

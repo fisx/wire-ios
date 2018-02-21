@@ -53,8 +53,7 @@ extension StartUIViewController: SearchResultsViewControllerDelegate {
     }
     
     public func searchResultsViewController(_ searchResultsViewController: SearchResultsViewController, didTapOnConversation conversation: ZMConversation) {
-        if conversation.conversationType == .group
-            || (conversation.conversationType == .oneOnOne && conversation.includesServiceUser) {
+        if conversation.conversationType == .group || conversation.conversationType == .oneOnOne {
             self.delegate.startUI?(self, didSelect: conversation)
         }
     }
@@ -85,16 +84,42 @@ extension StartUIViewController: SearchResultsViewControllerDelegate {
     public func searchResultsViewController(_ searchResultsViewController: SearchResultsViewController, wantsToPerformAction action: SearchResultsViewControllerAction) {
         switch action {
         case .createGroup:
-            let controller = ConversationCreationController { [unowned self] values in
-                self.navigationController?.popToRootViewController(animated: true)
-                values.apply {
-                    self.delegate.startUI(self, createConversationWith: $0.participants, name: $0.name)
+            let controller = ConversationCreationController()
+            controller.delegate = self
+
+            if self.traitCollection.horizontalSizeClass == .compact {
+                let avoiding = KeyboardAvoidingViewController(viewController: controller)
+                self.navigationController?.pushViewController(avoiding, animated: true) {
+                    UIApplication.shared.wr_updateStatusBarForCurrentControllerAnimated(true)
                 }
             }
-            
-            let avoiding = KeyboardAvoidingViewController(viewController: controller)
-            self.navigationController?.pushViewController(avoiding, animated: true)
+            else {
+                let embeddedNavigationController = controller.wrapInNavigationController()
+                embeddedNavigationController.modalPresentationStyle = .formSheet
+                self.present(embeddedNavigationController, animated: true)
+            }
+        }
+    }
+}
+
+extension StartUIViewController: ConversationCreationControllerDelegate {
+    func dismiss(controller: ConversationCreationController) {
+        if traitCollection.horizontalSizeClass == .compact {
+            navigationController?.popToRootViewController(animated: true) {
+                UIApplication.shared.wr_updateStatusBarForCurrentControllerAnimated(true)
+            }
+        }
+        else {
+            controller.navigationController?.dismiss(animated: true)
         }
     }
     
+    func conversationCreationController(_ controller: ConversationCreationController, didSelectName name: String, participants: Set<ZMUser>) {
+        dismiss(controller: controller)
+        delegate.startUI(self, createConversationWith: participants, name: name)
+    }
+    
+    func conversationCreationControllerDidCancel(_ controller: ConversationCreationController) {
+        dismiss(controller: controller)
+    }
 }
