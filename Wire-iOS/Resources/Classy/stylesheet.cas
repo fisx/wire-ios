@@ -847,10 +847,6 @@ IconSystemCell, ConversationNewDeviceCell, MissedCallCell, PerformedCallCell, Ca
     labelTextBlendedColor: $color-text-dimmed;
 }
 
-ParticipantsCell {
-    labelLargeFont: $font-large-semibold;
-}
-
 ConversationRenamedCell {
     nameLabelFont: $font-normal-semibold;
 }
@@ -1253,6 +1249,13 @@ AddParticipantsViewController SearchHeaderViewController {
     closeButton: @{
         iconColor[state:normal]: $color-icon-normal;
         iconColor[state:highlighted]: $color-icon-highlighted;
+    }
+}
+
+
+AddParticipantsViewController {
+    view: @{
+        backgroundColor: $color-bar-background;
     }
 }
 

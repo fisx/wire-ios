@@ -46,6 +46,9 @@ typedef NS_ENUM(NSUInteger, ProfileViewControllerTabBarIndex) {
 };
 
 
+@interface ProfileViewController (AddParticipants) <AddParticipantsViewControllerDelegate>
+@end
+
 
 @interface ProfileViewController (ProfileViewControllerDelegate) <ProfileViewControllerDelegate>
 @end
@@ -56,13 +59,11 @@ typedef NS_ENUM(NSUInteger, ProfileViewControllerTabBarIndex) {
 @interface ProfileViewController (ProfileDetailsViewControllerDelegate) <ProfileDetailsViewControllerDelegate>
 @end
 
+
 @interface ProfileViewController (DevicesListDelegate) <ProfileDevicesViewControllerDelegate>
 @end
 
 @interface ProfileViewController (TabBarControllerDelegate) <TabBarControllerDelegate>
-@end
-
-@interface ProfileViewController (ConversationCreationDelegate) <ConversationCreationControllerDelegate>
 @end
 
 
@@ -70,6 +71,7 @@ typedef NS_ENUM(NSUInteger, ProfileViewControllerTabBarIndex) {
 @interface ProfileViewController () <ZMUserObserver>
 
 @property (nonatomic, readonly) ZMConversation *conversation;
+
 @property (nonatomic) id observerToken;
 @property (nonatomic) ProfileHeaderView *headerView;
 @property (nonatomic) TabBarController *tabsController;
@@ -232,6 +234,25 @@ typedef NS_ENUM(NSUInteger, ProfileViewControllerTabBarIndex) {
 @end
 
 
+
+@implementation ProfileViewController (AddParticipants)
+
+- (void)addParticipantsViewControllerDidCancel:(AddParticipantsViewController *)addParticipantsViewController
+{
+    [addParticipantsViewController dismissViewControllerAnimated:YES completion:nil];
+}
+
+- (void)addParticipantsViewController:(AddParticipantsViewController *)addParticipantsViewController didSelectUsers:(NSSet<ZMUser *> *)users
+{
+    [addParticipantsViewController dismissViewControllerAnimated:YES completion:^{
+        if ([self.delegate respondsToSelector:@selector(profileViewController:wantsToAddUsers:toConversation:)]) {
+            [self.delegate profileViewController:self wantsToAddUsers:users toConversation:self.conversation];
+        }
+    }];
+}
+
+@end
+
 @implementation ProfileViewController (ViewControllerDismissable)
 
 - (void)viewControllerWantsToBeDismissed:(UIViewController *)controller completion:(dispatch_block_t)completion
@@ -267,9 +288,9 @@ typedef NS_ENUM(NSUInteger, ProfileViewControllerTabBarIndex) {
     }
 }
 
-- (void)profileDetailsViewController:(ProfileDetailsViewController *)profileDetailsViewController didPresentConversationCreationController:(ConversationCreationController *)conversationCreationController
+- (void)profileDetailsViewController:(ProfileDetailsViewController *)profileDetailsViewController didPresentAddParticipantsViewController:(AddParticipantsViewController *)addParticipantsViewController
 {
-    conversationCreationController.delegate = self;
+    addParticipantsViewController.delegate = self;
 }
 
 - (void)profileDetailsViewController:(ProfileDetailsViewController *)profileDetailsViewController wantsToBeDismissedWithCompletion:(dispatch_block_t)completion
@@ -279,28 +300,6 @@ typedef NS_ENUM(NSUInteger, ProfileViewControllerTabBarIndex) {
     } else if (completion != nil) {
         completion();
     }
-}
-
-@end
-
-
-@implementation ProfileViewController (ConversationCreationDelegate)
-
-- (void)conversationCreationController:(ConversationCreationController *)controller didSelectName:(NSString *)name participants:(NSSet<ZMUser *> *)participants
-{
-    [controller dismissViewControllerAnimated:YES completion:^{
-        [UIApplication.sharedApplication wr_updateStatusBarForCurrentControllerAnimated:YES];
-        if ([self.delegate respondsToSelector:@selector(profileViewController:wantsToCreateConversationWithName:users:)]) {
-            [self.delegate profileViewController:self wantsToCreateConversationWithName:name users:participants];
-        }
-    }];
-}
-
-- (void)conversationCreationControllerDidCancel:(ConversationCreationController *)controller
-{
-    [controller dismissViewControllerAnimated:YES completion:^{
-        [UIApplication.sharedApplication wr_updateStatusBarForCurrentControllerAnimated:YES];
-    }];
 }
 
 @end

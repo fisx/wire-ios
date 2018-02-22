@@ -124,7 +124,9 @@ open class IconSystemCell: ConversationCell, TTTAttributedLabelDelegate {
         }
 
         createLineViewConstraints()
+
         updateLineBaseLineConstraint()
+
         createBaselineConstraint()
     }
     
@@ -156,7 +158,7 @@ open class IconSystemCell: ConversationCell, TTTAttributedLabelDelegate {
 }
 
 
-extension UIFont {
+fileprivate extension UIFont {
 
     var median: CGFloat {
         return ascender - (xHeight / 2)

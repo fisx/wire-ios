@@ -407,41 +407,20 @@ typedef NS_ENUM(NSUInteger, ProfileUserAction) {
 
 - (void)presentAddParticipantsViewController
 {
-    NSSet *selectedUsers = nil;
-    if (nil != self.conversation.connectedUser) {
-        selectedUsers = [NSSet setWithObject:self.conversation.connectedUser];
-    } else {
-        selectedUsers = [NSSet set];
-    }
+    AddParticipantsViewController *addParticipantsViewController = [[AddParticipantsViewController alloc] initWithConversation:self.conversation];
     
-    ConversationCreationController *conversationCreationController = [[ConversationCreationController alloc] initWithPreSelectedParticipants:selectedUsers];
+    UINavigationController *presentedViewController = [addParticipantsViewController wrapInNavigationController:[AddParticipantsNavigationController class]];
     
-    if ([[[UIScreen mainScreen] traitCollection] horizontalSizeClass] == UIUserInterfaceSizeClassRegular) {
-        [self dismissViewControllerAnimated:YES completion:^{
-            UINavigationController *presentedViewController = [conversationCreationController wrapInNavigationController:AddParticipantsNavigationController.class];
-            
-            presentedViewController.modalPresentationStyle = UIModalPresentationFormSheet;
-            
-            [[ZClientViewController sharedZClientViewController] presentViewController:presentedViewController
-                                                                              animated:YES
-                                                                            completion:nil];
-        }];
-    }
-    else {
-        KeyboardAvoidingViewController *avoiding = [[KeyboardAvoidingViewController alloc] initWithViewController:conversationCreationController];
-        UINavigationController *presentedViewController = [avoiding wrapInNavigationController:AddParticipantsNavigationController.class];
-        
-        presentedViewController.modalPresentationStyle = UIModalPresentationOverCurrentContext;
-        presentedViewController.modalTransitionStyle = UIModalTransitionStyleCoverVertical;
-        
-        [self presentViewController:presentedViewController
-                           animated:YES
-                         completion:^{
-            [Analytics.shared tagOpenedPeoplePickerGroupAction];
-            [UIApplication.sharedApplication wr_updateStatusBarForCurrentControllerAnimated:YES];
-        }];
-    }
-    [self.delegate profileDetailsViewController:self didPresentConversationCreationController:conversationCreationController];
+    presentedViewController.modalPresentationStyle = UIModalPresentationOverCurrentContext;
+    presentedViewController.modalTransitionStyle = UIModalTransitionStyleCoverVertical;
+    
+    [self presentViewController:presentedViewController
+                       animated:YES
+                     completion:^{
+        [Analytics.shared tagOpenedPeoplePickerGroupAction];
+    }];
+    
+    [self.delegate profileDetailsViewController:self didPresentAddParticipantsViewController:addParticipantsViewController];
 }
 
 - (void)bringUpConnectionRequestSheet

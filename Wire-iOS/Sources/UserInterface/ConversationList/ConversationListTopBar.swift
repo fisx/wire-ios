@@ -29,9 +29,7 @@ final class ConversationListTopBar: TopBar {
         
         if ZMUser.selfUser().isTeamMember {
             let availabilityView = AvailabilityTitleView(user: ZMUser.selfUser(), style: .header)
-            availabilityView.tapHandler = { [weak availabilityView] button in
-                guard let availabilityView = availabilityView else { return }
-                
+            availabilityView.tapHandler = { button in
                 let alert = availabilityView.actionSheet
                 alert.popoverPresentationController?.sourceView = button
                 alert.popoverPresentationController?.sourceRect = button.frame

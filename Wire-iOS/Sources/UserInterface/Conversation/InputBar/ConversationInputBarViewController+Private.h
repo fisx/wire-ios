@@ -35,8 +35,6 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, nonnull)  ConversationInputBarSendController *sendController;
 @property (nonatomic, nullable) id <ZMConversationMessage> editingMessage;
 
-@property (nonatomic) UIImpactFeedbackGenerator *impactFeedbackGenerator;
-
 @property (nonatomic)           BOOL shouldRefocusKeyboardAfterImagePickerDismiss;
 @property (nonatomic)           BOOL inputBarOverlapsContent;
 @property (nonatomic)           NSUInteger videoSendContext;

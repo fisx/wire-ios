@@ -51,10 +51,6 @@ class ClearBackgroundNavigationController: UINavigationController {
         }
     }
     
-    override var preferredStatusBarStyle: UIStatusBarStyle {
-        return topViewController?.preferredStatusBarStyle ?? .lightContent
-    }
-    
     override func viewDidLoad() {
         super.viewDidLoad()
         self.view.backgroundColor = UIColor.clear
@@ -65,7 +61,7 @@ class ClearBackgroundNavigationController: UINavigationController {
         self.navigationBar.shadowImage = UIImage()
         self.navigationBar.isTranslucent = true
         self.navigationBar.titleTextAttributes = [NSForegroundColorAttributeName: UIColor.white,
-                                                  NSFontAttributeName: FontSpec(.normal, .medium).font!.allCaps()]
+                                                  NSFontAttributeName: FontSpec(.medium, .medium).font!.allCaps()]
         
         let navButtonAppearance = UIBarButtonItem.appearance(whenContainedInInstancesOf: [UINavigationBar.self])
         
@@ -85,19 +81,9 @@ class ClearBackgroundNavigationController: UINavigationController {
         }
     }
     
-    func navigationController(_ navigationController: UINavigationController, willShow viewController: UIViewController, animated: Bool) {
-        if let avoiding = viewController as? KeyboardAvoidingViewController {
-            updateGesture(for: avoiding.viewController)
-        } else {
-            updateGesture(for: viewController)
-        }
+    func navigationController(_ navigationController: UINavigationController, didShow viewController: UIViewController, animated: Bool) {
+        useDefaultPopGesture = fabs(viewController.view.backgroundColor?.alpha ?? 1.0 - 1.0) < CGFloat.ulpOfOne
     }
-    
-    private func updateGesture(for viewController: UIViewController) {
-        let translucentBackground = viewController.view.backgroundColor?.alpha < 1.0
-        useDefaultPopGesture = !translucentBackground
-    }
-    
 }
 
 

@@ -47,7 +47,6 @@ typedef NS_ENUM(NSInteger, ProfileViewControllerContext) {
 
 - (void)profileViewController:(nullable ProfileViewController *)controller wantsToNavigateToConversation:(ZMConversation *)conversation;
 - (void)profileViewController:(nullable ProfileViewController *)controller wantsToAddUsers:(NSSet *)users toConversation:(ZMConversation *)conversation;
-- (void)profileViewController:(nullable ProfileViewController *)controller wantsToCreateConversationWithName:(nullable NSString *)name users:(nonnull NSSet <ZMUser *>*)users;
 
 @end
 

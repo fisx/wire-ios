@@ -90,7 +90,7 @@ class ShareExtensionViewController: SLComposeServiceViewController {
         ExtensionBackupExcluder.exclude()
         CrashReporter.setupHockeyIfNeeded()
         navigationController?.view.backgroundColor = .white
-        try? recreateSharingSession(account: currentAccount)
+        recreateSharingSession()
         let activity = ExtensionActivity(attachments: allAttachments)
         sharingSession?.analyticsEventPersistence.add(activity.openedEvent())
         extensionActivity = activity
@@ -137,17 +137,17 @@ class ShareExtensionViewController: SLComposeServiceViewController {
         return Bundle.main.infoDictionary?["HostBundleIdentifier"] as? String
     }
     
-    private func recreateSharingSession(account: Account?) throws {
+    private func recreateSharingSession() {
         guard let applicationGroupIdentifier = applicationGroupIdentifier,
             let hostBundleIdentifier = hostBundleIdentifier,
-            let accountIdentifier = account?.userIdentifier
+            let accountIdentifier = currentAccount?.userIdentifier
         else { return }
         
-        sharingSession = try SharingSession(
-                applicationGroupIdentifier: applicationGroupIdentifier,
-                accountIdentifier: accountIdentifier,
-                hostBundleIdentifier: hostBundleIdentifier
-            )
+        sharingSession = try? SharingSession(
+            applicationGroupIdentifier: applicationGroupIdentifier,
+            accountIdentifier: accountIdentifier,
+            hostBundleIdentifier: hostBundleIdentifier
+        )
     }
     
     private var accountManager: AccountManager? {
@@ -306,25 +306,13 @@ class ShareExtensionViewController: SLComposeServiceViewController {
     
     func updateAccount(_ account: Account?) {
         guard let account = account, account != currentAccount else { return }
-
-        do {
-            try recreateSharingSession(account: account)
-        } catch let error as SharingSession.InitializationError {
-            guard error == .loggedOut else { return }
-            let alert = UIAlertController(title: "share_extension.logged_out.title".localized,
-                                          message: "share_extension.logged_out.message".localized, preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "share_extension.general.ok".localized, style: .default, handler: nil))
-            self.present(alert, animated: true)
-            return
-        } catch { //any other error
-            return
-        }
         
         currentAccount = account
         accountItem.value = account.shareExtensionDisplayName
         conversationItem.value = "share_extension.conversation_selection.empty.value".localized
         postContent?.target = nil
         extensionActivity?.conversation = nil
+        recreateSharingSession()
     }
     
     private func presentChooseAccount() {

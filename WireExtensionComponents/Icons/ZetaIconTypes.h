@@ -217,7 +217,6 @@ typedef NS_ENUM(NSInteger, ZetaIconSize) {
     ZetaIconSizeMedium, // 24
     ZetaIconSizeActionButton, // 28
     ZetaIconSizeRegistrationButton, // 32
-    ZetaIconSizeCameraKeyboardButton, // 36
     ZetaIconSizeCamera, // 40
     ZetaIconSizeLarge,   // 48
 };

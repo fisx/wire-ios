@@ -34,7 +34,6 @@
 @interface ConversationInputBarSendController ()
 
 @property (nonatomic, readwrite) ZMConversation *conversation;
-@property (nonatomic) UIImpactFeedbackGenerator* feedbackGenerator;
 
 @end
 
@@ -45,9 +44,6 @@
     self = [super init];
     if (self) {
         self.conversation = conversation;
-        if (nil != [UIImpactFeedbackGenerator class]) {
-            self.feedbackGenerator = [[UIImpactFeedbackGenerator alloc] initWithStyle:UIImpactFeedbackStyleLight];
-        }
     }
     return self;
 }
@@ -55,10 +51,8 @@
 -(void)sendMessageWithImageData:(NSData *)imageData completion:(dispatch_block_t)completionHandler
 {
     if (imageData != nil) {
-        [self.feedbackGenerator prepare];
         [[ZMUserSession sharedSession] enqueueChanges:^{
             [self.conversation appendMessageWithImageData:imageData];
-            [self.feedbackGenerator impactOccurred];
         } completionHandler:^{
             if (completionHandler){
                 completionHandler();

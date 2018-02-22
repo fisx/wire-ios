@@ -307,9 +307,9 @@ public class SearchResultsViewController : UIViewController {
             case (.selection, true):
                 sections = [teamMemberAndContactsSection]
             case (.list, false):
-                sections = [createGroupSection, topPeopleSection, contactsSection]
+                sections = [topPeopleSection, createGroupSection, contactsSection]
             case (.list, true):
-                sections = [createGroupSection, inviteTeamMemberSection, teamMemberAndContactsSection]
+                sections = [inviteTeamMemberSection, createGroupSection, teamMemberAndContactsSection]
             }
         }
         

@@ -29,8 +29,9 @@ extension BackButtonDescription: ViewDescriptor {
         button.frame = CGRect(x: 0, y: 0, width: 40, height: 20)
         button.setIconColor(UIColor.wr_color(fromColorScheme: ColorSchemeColorIconNormal, variant: .light), for: .normal)
         button.setIconColor(UIColor.wr_color(fromColorScheme: ColorSchemeColorTextDimmed, variant: .light), for: .highlighted)
+        button.translatesAutoresizingMaskIntoConstraints = false
         let iconType: ZetaIconType = UIApplication.isLeftToRightLayout ? .chevronLeft : .chevronRight
-        button.setIcon(iconType, with: .tiny, for: .normal)
+        button.setIcon(iconType, with: .small, for: .normal)
         button.accessibilityIdentifier = accessibilityIdentifier
         button.addTarget(self, action: #selector(BackButtonDescription.backButtonTapped(_:)), for: .touchUpInside)
         button.sizeToFit()

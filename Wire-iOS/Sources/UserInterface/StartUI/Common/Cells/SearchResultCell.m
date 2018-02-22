@@ -27,8 +27,6 @@
 @import WireDataModel;
 #import "Wire-Swift.h"
 
-static NSMutableDictionary *correlationFormatters;
-
 @interface SearchResultCell ()
 @property (nonatomic, strong) UIView *gesturesView;
 @property (nonatomic, strong) BadgeUserImageView *badgeUserImageView;
@@ -74,22 +72,14 @@ static NSMutableDictionary *correlationFormatters;
     return [UIFont fontWithMagicIdentifier:@"style.text.small.font_spec_bold"];
 }
 
-+ (AddressBookCorrelationFormatter*)correlationFormatterForColorSchemeVariant:(ColorSchemeVariant)variant {
-    
-    if(correlationFormatters == nil) {
-        correlationFormatters = [NSMutableDictionary dictionary];
-    }
-    
-    AddressBookCorrelationFormatter *formatter = [correlationFormatters objectForKey:@(variant)];
-    
-    if(formatter == nil) {
-        UIColor *color = [[ColorScheme defaultColorScheme] colorWithName:ColorSchemeColorTextDimmed variant:variant];
-        formatter = [[AddressBookCorrelationFormatter alloc] initWithLightFont:self.class.lightFont
-                                                                      boldFont:self.class.boldFont
-                                                                         color:color];
-        [correlationFormatters setObject:formatter forKey:@(variant)];
-    }
-    
++ (AddressBookCorrelationFormatter *)correlationFormatter
+{
+    static dispatch_once_t onceToken;
+    static AddressBookCorrelationFormatter *formatter = nil;
+    dispatch_once(&onceToken, ^{
+        formatter = [[AddressBookCorrelationFormatter alloc] initWithLightFont:self.lightFont boldFont:self.boldFont color:UIColor.whiteColor];
+    });
+
     return formatter;
 }
 
@@ -193,7 +183,6 @@ static NSMutableDictionary *correlationFormatters;
         [self.nameLabelStackView autoAlignAxis:ALAxisHorizontal toSameAxisOfView:self.avatarContainer];
         
         [self.nameLabelStackView autoPinEdge:ALEdgeLeading toEdge:ALEdgeTrailing ofView:self.avatarContainer withOffset:nameAvatarMargin];
-        
         self.nameRightMarginConstraint = [self.nameLabelStackView autoPinEdge:ALEdgeTrailing toEdge:ALEdgeTrailing ofView:self.swipeView withOffset:- rightMargin];
 
         self.avatarViewSizeConstraint = [self.avatarContainer autoSetDimension:ALDimensionWidth toSize:80];
@@ -207,10 +196,10 @@ static NSMutableDictionary *correlationFormatters;
         [self.conversationImageView autoPinEdgeToSuperviewEdge:ALEdgeTop];
 
         [self.instantConnectButton autoAlignAxis:ALAxisHorizontal toSameAxisOfView:self.avatarContainer];
-        [self.instantConnectButton autoPinEdgeToSuperviewEdge:ALEdgeTrailing withInset:rightMargin];
+        [self.instantConnectButton autoPinEdgeToSuperviewEdge:ALEdgeTrailing withInset:16];
         
         [self.trailingCheckmarkView autoAlignAxis:ALAxisHorizontal toSameAxisOfView:self.avatarContainer];
-        [self.trailingCheckmarkView autoPinEdgeToSuperviewEdge:ALEdgeTrailing withInset:rightMargin];
+        [self.trailingCheckmarkView autoPinEdgeToSuperviewEdge:ALEdgeTrailing withInset:16];
         [self.trailingCheckmarkView autoSetDimensionsToSize:CGSizeMake(24, 24)];
 
         [self.separatorLineView autoPinEdgeToSuperviewEdge:ALEdgeTrailing];
@@ -226,15 +215,12 @@ static NSMutableDictionary *correlationFormatters;
         }];
     }
 
-    CGFloat rightMarginForName = 0;
+    CGFloat rightMarginForName = rightMargin;
     if (!self.instantConnectButton.hidden) {
         rightMarginForName = self.instantConnectButton.bounds.size.width;
     }
-    if (!self.trailingCheckmarkView.hidden) {
-        rightMarginForName += self.trailingCheckmarkView.bounds.size.width + rightMargin;
-    }
-    if (!self.guestLabel.hidden) {
-        rightMarginForName += self.guestLabel.bounds.size.width + rightMargin;
+    else if (!self.guestLabel.hidden) {
+        rightMarginForName = self.guestLabel.bounds.size.width + rightMargin;
     }
 
     self.nameRightMarginConstraint.constant = -rightMarginForName;
@@ -330,23 +316,15 @@ static NSMutableDictionary *correlationFormatters;
 
 - (void)updateAccessibilityLabel
 {
-    NSString *newAccessibilityLabel = @"";
-    
     if (self.nameLabel.text.length != 0 && self.subtitleLabel.text.length != 0) {
-        newAccessibilityLabel = [NSString stringWithFormat:@"%@ - %@", self.nameLabel.text, self.subtitleLabel.text];
+        self.accessibilityLabel = [NSString stringWithFormat:@"%@ - %@", self.nameLabel.text, self.subtitleLabel.text];
     }
     else if (self.nameLabel.text.length != 0) {
-        newAccessibilityLabel = self.nameLabel.text;
+        self.accessibilityLabel = self.nameLabel.text;
     }
     else {
-        newAccessibilityLabel = @"";
+        self.accessibilityLabel = @"";
     }
-    
-    if (!self.guestLabel.hidden && self.guestLabel.textLabel.text.length != 0) {
-        newAccessibilityLabel = [NSString stringWithFormat:@"%@ (%@)", newAccessibilityLabel, self.guestLabel.textLabel.text];
-    }
-    
-    self.accessibilityLabel = newAccessibilityLabel;
 }
 
 #pragma mark - Public API
@@ -464,7 +442,7 @@ static NSMutableDictionary *correlationFormatters;
             [self.swipeView addSubview:self.guestLabel];
             [self.guestLabel autoAlignAxisToSuperviewAxis:ALAxisHorizontal];
             self.guestLabelTrailingConstraint = [self.guestLabel autoPinEdgeToSuperviewEdge:ALEdgeTrailing withInset:rightMargin];
-            self.guestLabelCheckmarkViewHorizontalConstraint = [self.guestLabel autoPinEdge:ALEdgeTrailing toEdge:ALEdgeLeading ofView:self.trailingCheckmarkView withOffset:-rightMargin];
+            self.guestLabelCheckmarkViewHorizontalConstraint = [self.guestLabel autoPinEdge:ALEdgeTrailing toEdge:ALEdgeLeading ofView:self.trailingCheckmarkView withOffset:-16];
             [self updateGuestLabelConstraints];
         }
         self.guestLabel.hidden = NO;
@@ -502,8 +480,8 @@ static NSMutableDictionary *correlationFormatters;
             break;
         }
         case SearchResultCellAccessoryTypeTrailingCheckmark: {
-            UIColor *foregroundColor = [ColorScheme.defaultColorScheme colorWithName:ColorSchemeColorBackground variant:self.colorSchemeVariant];
-            UIColor *backgroundColor = [ColorScheme.defaultColorScheme colorWithName:ColorSchemeColorIconNormal variant:self.colorSchemeVariant];
+            UIColor *foregroundColor = [ColorScheme.defaultColorScheme colorWithName:ColorSchemeColorBackground];
+            UIColor *backgroundColor = [ColorScheme.defaultColorScheme colorWithName:ColorSchemeColorIconNormal];
             self.trailingCheckmarkView.image = selected ? [UIImage imageForIcon:ZetaIconTypeCheckmark iconSize:ZetaIconSizeLike color:foregroundColor] : nil;
             self.trailingCheckmarkView.backgroundColor = selected ? backgroundColor : UIColor.clearColor;
             UIColor *borderColor = selected ? backgroundColor : [backgroundColor colorWithAlphaComponent:0.64];
@@ -526,9 +504,9 @@ static NSMutableDictionary *correlationFormatters;
         attributedHandle = [[NSAttributedString alloc] initWithString:displayHandle attributes:attributes];
         [subtitle appendAttributedString:attributedHandle];
     }
-    NSString *addressBookName = BareUserToUser(user).addressBookEntry.cachedName;
-    AddressBookCorrelationFormatter *formatter = [self.class correlationFormatterForColorSchemeVariant:self.colorSchemeVariant];
-    NSAttributedString *correlation = [formatter correlationTextFor:self.user addressBookName:addressBookName];
+    
+    NSString *addresBookName = BareUserToUser(user).addressBookEntry.cachedName;
+    NSAttributedString *correlation = [self.class.correlationFormatter correlationTextFor:self.user addressBookName:addresBookName];
     if (nil != correlation) {
         if (nil != attributedHandle) {
             NSDictionary *delimiterAttributes = @{ NSFontAttributeName: self.class.lightFont, NSForegroundColorAttributeName: self.subtitleColor };
@@ -554,7 +532,7 @@ static NSMutableDictionary *correlationFormatters;
 
 - (NSAttributedString *)attributedSubtitleForUser:(id <ZMBareUser, ZMSearchableUser>)user
 {
-    if ([user conformsToProtocol:@protocol(SearchServiceUser)] && user.isServiceUser) {
+    if ([user conformsToProtocol:@protocol(SearchServiceUser)]) {
         return [self attributedSubtitleForServiceUser:(id<SearchServiceUser>)user];
     }
     else {
