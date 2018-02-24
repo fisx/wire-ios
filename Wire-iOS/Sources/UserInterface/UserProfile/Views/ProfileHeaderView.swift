@@ -42,12 +42,21 @@ final class ProfileHeaderView: UIView {
 
     private var backButtonLeading: NSLayoutConstraint?
     private var cancelButtonTrailing: NSLayoutConstraint?
+    fileprivate var uIIdiomSizeClassOrientationProtocol: UIIdiomSizeClassOrientationProtocol.Type
+
+    convenience init(with viewModel: ProfileHeaderViewModel, _ uIIdiomSizeClassOrientationProtocol: UIIdiomSizeClassOrientationProtocol.Type = UIIdiomSizeClassOrientation.self) {
+        self.init(with: viewModel)
+
+        self.uIIdiomSizeClassOrientationProtocol = uIIdiomSizeClassOrientationProtocol
+    }
 
     @objc(initWithViewModel:)
     init(with viewModel: ProfileHeaderViewModel) {
         headerStyle = .noButton
         navigationControllerViewControllerCount = viewModel.navigationControllerViewControllerCount
         profileViewControllerContext = viewModel.context
+        self.uIIdiomSizeClassOrientationProtocol = UIIdiomSizeClassOrientation.self
+
         super.init(frame: .zero)
 
         setupViews()
@@ -149,7 +158,7 @@ final class ProfileHeaderView: UIView {
     private func updateHeaderStyle() {
         var headerStyle: ProfileHeaderStyle = .cancelButton
 
-        if self.traitCollection.userInterfaceIdiom == .pad && UIApplication.shared.keyWindow?.traitCollection.horizontalSizeClass == .regular {
+        if uIIdiomSizeClassOrientationProtocol.current().isIPadRegular() {
 
             if navigationControllerViewControllerCount > 1 {
                 headerStyle = .backButton
@@ -165,8 +174,9 @@ final class ProfileHeaderView: UIView {
 
     override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
         super.traitCollectionDidChange(previousTraitCollection)
-        guard self.traitCollection.userInterfaceIdiom == .pad,
-            UIApplication.shared.keyWindow?.traitCollection.horizontalSizeClass != .unspecified else {
+        let currentIdiomSizeClassOrientation = uIIdiomSizeClassOrientationProtocol.current()
+        guard currentIdiomSizeClassOrientation.idiom == .pad &&
+              currentIdiomSizeClassOrientation.horizontalSizeClass != .unspecified else {
             return
         }
 
