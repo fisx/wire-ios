@@ -146,7 +146,7 @@ final class LandingViewController: UIViewController {
         return button
     }()
     
-    init(_ uIIdiomSizeClassOrientationProtocol: UIIdiomSizeClassOrientationProtocol.Type = UIIdiomSizeClassOrientation.self) {
+    public init(_ uIIdiomSizeClassOrientationProtocol: UIIdiomSizeClassOrientationProtocol.Type = UIIdiomSizeClassOrientation.self) {
         self.uIIdiomSizeClassOrientationProtocol = uIIdiomSizeClassOrientationProtocol
         
         super.init(nibName: nil, bundle: nil)
