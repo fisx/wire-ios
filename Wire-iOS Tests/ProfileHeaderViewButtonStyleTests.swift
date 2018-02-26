@@ -38,6 +38,7 @@ final class ProfileHeaderViewButtonStyleTests: XCTestCase {
 
     func testThatDismissButtonSwitchesStyleWhenSizeClassChangeFromRegularToCompact() {
         // GIVEN
+        MockIdiomSizeClassOrientation.currentIdiom = .pad
         MockIdiomSizeClassOrientation.currentHorizontalSizeClass = .regular
         MockIdiomSizeClassOrientation.currentOrientation = .portrait
         sut.traitCollectionDidChange(nil)
@@ -54,6 +55,7 @@ final class ProfileHeaderViewButtonStyleTests: XCTestCase {
 
     func testThatDismissButtonSwitchesStyleWhenSizeClassChangeFromCompactToRegular() {
         // GIVEN
+        MockIdiomSizeClassOrientation.currentIdiom = .pad
         MockIdiomSizeClassOrientation.currentHorizontalSizeClass = .compact
         MockIdiomSizeClassOrientation.currentOrientation = .portrait
         sut.traitCollectionDidChange(nil)
@@ -85,6 +87,7 @@ final class ProfileHeaderViewButtonStyleTests: XCTestCase {
         // GIVEN
         let model = ProfileHeaderViewModel(user: nil, fallbackName: "Jose Luis", addressBookName: nil, navigationControllerViewControllerCount: 2)
         sut = ProfileHeaderView(with: model, MockIdiomSizeClassOrientation.self)
+        MockIdiomSizeClassOrientation.currentIdiom = .pad
         MockIdiomSizeClassOrientation.currentHorizontalSizeClass = .regular
         MockIdiomSizeClassOrientation.currentOrientation = .portrait
 
